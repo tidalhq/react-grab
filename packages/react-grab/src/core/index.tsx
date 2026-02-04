@@ -23,6 +23,7 @@ import {
   getNearestComponentName,
   checkIsSourceComponentName,
   getComponentDisplayName,
+  setComponentFilter,
 } from "./context.js";
 import { isSourceFile, normalizeFileName } from "bippy/source";
 import { createNoopApi } from "./noop-api.js";
@@ -167,6 +168,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
     return createNoopApi();
   }
   hasInited = true;
+
+  if (initialOptions.componentFilter) {
+    setComponentFilter(initialOptions.componentFilter);
+  }
 
   logIntro();
 
@@ -3571,6 +3576,9 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
       setOptions: (newOptions: SettableOptions) => {
         pluginRegistry.setOptions(newOptions);
+        if ("componentFilter" in newOptions) {
+          setComponentFilter(newOptions.componentFilter);
+        }
       },
       registerPlugin: (plugin: Plugin) => {
         pluginRegistry.register(plugin, api);
