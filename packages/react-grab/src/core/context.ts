@@ -19,6 +19,14 @@ import {
 } from "../constants.js";
 import { getTagName } from "../utils/get-tag-name.js";
 
+let userComponentFilter: ((componentName: string) => boolean) | undefined;
+
+export const setComponentFilter = (
+  filter: ((componentName: string) => boolean) | undefined,
+): void => {
+  userComponentFilter = filter;
+};
+
 const NEXT_INTERNAL_COMPONENT_NAMES = new Set([
   "InnerLayoutRouter",
   "RedirectErrorBoundary",
@@ -76,6 +84,7 @@ export const checkIsSourceComponentName = (name: string): boolean => {
   if (!isCapitalized(name)) return false;
   if (name.startsWith("Primitive.")) return false;
   if (name.includes("Provider") && name.includes("Context")) return false;
+  if (userComponentFilter && !userComponentFilter(name)) return false;
   return true;
 };
 
@@ -125,6 +134,7 @@ const isUsefulComponentName = (name: string): boolean => {
   if (checkIsInternalComponentName(name)) return false;
   if (name.startsWith("Primitive.")) return false;
   if (name === "SlotClone" || name === "Slot") return false;
+  if (userComponentFilter && !userComponentFilter(name)) return false;
   return true;
 };
 
