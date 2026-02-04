@@ -1,0 +1,5 @@
+var ReactGrabAmi=(function(exports){'use strict';var p="ami://new-chat",c=()=>({send:async function*(n){let o=`${n.prompt}
+
+${n.content.join(`
+
+`)}`,i=encodeURIComponent(o),e=`${p}?prompt=${i}`;window.open(e,"_self"),yield "Opened";},checkConnection:async()=>true,supportsResume:false,supportsFollowUp:false,undo:void 0,redo:void 0,dismissButtonText:"Copy"}),u=()=>c(),r=t=>typeof t=="object"&&t!==null&&"registerPlugin"in t,A=()=>{if(typeof window>"u")return;let t=c(),n=e=>{let s={provider:t,storage:sessionStorage},a={name:"ami-agent",actions:[{id:"edit-with-ami",label:"Edit with Ami",shortcut:"Enter",onAction:d=>{d.enterPromptMode?.(s);},agent:s}]};e.registerPlugin(a);},o=window.__REACT_GRAB__;if(r(o)){n(o);return}window.addEventListener("react-grab:init",e=>{e instanceof CustomEvent&&r(e.detail)&&n(e.detail);},{once:true});let i=window.__REACT_GRAB__;r(i)&&n(i);};A();exports.attachAgent=A;exports.createAmiAgentProvider=u;return exports;})({});

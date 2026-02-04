@@ -3,7 +3,6 @@ node_modules
 .env
 .turbo
 .ami-token
-dist
 **/*.tgz
 coverage
 react-grab-extension.zip
