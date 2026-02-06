@@ -10,7 +10,7 @@
     "package": "./scripts/package.sh"
   },
   "dependencies": {
-    "react-grab": "workspace:*",
+    "react-grab": "workspace:@houkanshan/react-grab-patch@*",
     "turndown": "^7.2.4"
   },
   "devDependencies": {
