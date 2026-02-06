@@ -1,5 +1,5 @@
 {
-  "name": "react-grab",
+  "name": "@houkanshan/react-grab-patch",
   "version": "0.1.13",
   "description": "Select context for coding agents directly from your website",
   "keywords": [
