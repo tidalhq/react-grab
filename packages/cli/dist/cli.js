@@ -1,13 +1,56 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import pc from 'picocolors';
-import prompts3 from 'prompts';
+import basePrompts from 'prompts';
 import { execSync } from 'child_process';
 import { readFileSync, existsSync, writeFileSync, accessSync, constants, readdirSync } from 'fs';
 import { join, basename } from 'path';
 import { detect } from '@antfu/ni';
 import ora from 'ora';
 
+var highlighter = {
+  error: pc.red,
+  warn: pc.yellow,
+  info: pc.cyan,
+  success: pc.green,
+  dim: pc.dim
+};
+
+// src/utils/logger.ts
+var logger = {
+  error(...args) {
+    console.log(highlighter.error(args.join(" ")));
+  },
+  warn(...args) {
+    console.log(highlighter.warn(args.join(" ")));
+  },
+  info(...args) {
+    console.log(highlighter.info(args.join(" ")));
+  },
+  success(...args) {
+    console.log(highlighter.success(args.join(" ")));
+  },
+  dim(...args) {
+    console.log(highlighter.dim(args.join(" ")));
+  },
+  log(...args) {
+    console.log(args.join(" "));
+  },
+  break() {
+    console.log("");
+  }
+};
+
+// src/utils/prompts.ts
+var onCancel = () => {
+  logger.break();
+  logger.log("Cancelled.");
+  logger.break();
+  process.exit(0);
+};
+var prompts = (questions) => {
+  return basePrompts(questions, { onCancel });
+};
 var detectPackageManager = async (projectRoot) => {
   const detected = await detect({ cwd: projectRoot });
   if (detected && ["npm", "yarn", "pnpm", "bun"].includes(detected)) {
@@ -413,38 +456,6 @@ ${BOLD}File: ${filePath}${RESET}`);
   console.log(formatDiff(diff));
   console.log("\u2500".repeat(60));
 };
-var highlighter = {
-  error: pc.red,
-  warn: pc.yellow,
-  info: pc.cyan,
-  success: pc.green,
-  dim: pc.dim
-};
-
-// src/utils/logger.ts
-var logger = {
-  error(...args) {
-    console.log(highlighter.error(args.join(" ")));
-  },
-  warn(...args) {
-    console.log(highlighter.warn(args.join(" ")));
-  },
-  info(...args) {
-    console.log(highlighter.info(args.join(" ")));
-  },
-  success(...args) {
-    console.log(highlighter.success(args.join(" ")));
-  },
-  dim(...args) {
-    console.log(highlighter.dim(args.join(" ")));
-  },
-  log(...args) {
-    console.log(args.join(" "));
-  },
-  break() {
-    console.log("");
-  }
-};
 
 // src/utils/handle-error.ts
 var handleError = (error) => {
@@ -522,7 +533,8 @@ var AGENTS = [
   "codex",
   "gemini",
   "amp",
-  "ami"
+  "ami",
+  "droid"
 ];
 var AGENT_NAMES = {
   "claude-code": "Claude Code",
@@ -531,7 +543,8 @@ var AGENT_NAMES = {
   codex: "Codex",
   gemini: "Gemini",
   amp: "Amp",
-  ami: "Ami"
+  ami: "Ami",
+  droid: "Droid"
 };
 var NEXT_APP_ROUTER_SCRIPT = `{process.env.NODE_ENV === "development" && (
           <Script
@@ -1447,7 +1460,7 @@ var findReactGrabFile = (projectRoot, framework, nextRouterType) => {
 };
 var addOptionsToNextScript = (originalContent, options, filePath) => {
   const reactGrabScriptMatch = originalContent.match(
-    /(<Script[^>]*react-grab[^>]*)(\/?>)/is
+    /(<Script[\s\S]*?react-grab[\s\S]*?)\s*(\/?>)/i
   );
   if (!reactGrabScriptMatch) {
     return {
@@ -1486,10 +1499,10 @@ var addOptionsToNextScript = (originalContent, options, filePath) => {
   };
 };
 var addOptionsToViteScript = (originalContent, options, filePath) => {
-  const reactGrabImportMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\)/
+  const reactGrabImportWithInitMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/
   );
-  if (!reactGrabImportMatch) {
+  if (!reactGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1499,7 +1512,7 @@ var addOptionsToViteScript = (originalContent, options, filePath) => {
   const optionsJson = formatOptionsAsJson(options);
   const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
   const newContent = originalContent.replace(
-    reactGrabImportMatch[0],
+    reactGrabImportWithInitMatch[0],
     newImport
   );
   return {
@@ -1511,10 +1524,10 @@ var addOptionsToViteScript = (originalContent, options, filePath) => {
   };
 };
 var addOptionsToWebpackImport = (originalContent, options, filePath) => {
-  const reactGrabImportMatch = originalContent.match(
-    /import\s*\(\s*["']react-grab["']\s*\)/
+  const reactGrabImportWithInitMatch = originalContent.match(
+    /import\s*\(\s*["']react-grab["']\s*\)(?:\.then\s*\(\s*\(m\)\s*=>\s*m\.init\s*\([^)]*\)\s*\))?/
   );
-  if (!reactGrabImportMatch) {
+  if (!reactGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1524,7 +1537,7 @@ var addOptionsToWebpackImport = (originalContent, options, filePath) => {
   const optionsJson = formatOptionsAsJson(options);
   const newImport = `import("react-grab").then((m) => m.init(${optionsJson}))`;
   const newContent = originalContent.replace(
-    reactGrabImportMatch[0],
+    reactGrabImportWithInitMatch[0],
     newImport
   );
   return {
@@ -1536,10 +1549,10 @@ var addOptionsToWebpackImport = (originalContent, options, filePath) => {
   };
 };
 var addOptionsToTanStackImport = (originalContent, options, filePath) => {
-  const reactGrabImportMatch = originalContent.match(
-    /void\s+import\s*\(\s*["']react-grab["']\s*\)/
+  const reactGrabImportWithInitMatch = originalContent.match(
+    /(?:void\s+import\s*\(\s*["']react-grab["']\s*\)|import\s*\(\s*["']react-grab\/core["']\s*\)\.then\s*\(\s*\(\s*\{\s*init\s*\}\s*\)\s*=>\s*init\s*\([^)]*\)\s*\))/
   );
-  if (!reactGrabImportMatch) {
+  if (!reactGrabImportWithInitMatch) {
     return {
       success: false,
       filePath,
@@ -1549,7 +1562,7 @@ var addOptionsToTanStackImport = (originalContent, options, filePath) => {
   const optionsJson = formatOptionsAsJson(options);
   const newImport = `import("react-grab/core").then(({ init }) => init(${optionsJson}))`;
   const newContent = originalContent.replace(
-    reactGrabImportMatch[0],
+    reactGrabImportWithInitMatch[0],
     newImport
   );
   return {
@@ -1812,9 +1825,42 @@ var previewPackageJsonAgentRemoval = (projectRoot, agent) => {
     };
   }
 };
+var previewCdnTransform = (projectRoot, framework, nextRouterType, targetCdnDomain) => {
+  const filePath = findReactGrabFile(projectRoot, framework, nextRouterType);
+  if (!filePath) {
+    return {
+      success: false,
+      filePath: "",
+      message: "Could not find React Grab file"
+    };
+  }
+  const originalContent = readFileSync(filePath, "utf-8");
+  const newContent = originalContent.replace(
+    /(https?:)?\/\/[^/\s"']+(?=\/(?:@?react-grab))/g,
+    `//${targetCdnDomain}`
+  ).replace(
+    /(https?:)?\/\/[^/\s"']*react-grab[^/\s"']*\.com(?=\/script\.js)/g,
+    `//${targetCdnDomain}`
+  );
+  if (newContent === originalContent) {
+    return {
+      success: true,
+      filePath,
+      message: "CDN already set",
+      noChanges: true
+    };
+  }
+  return {
+    success: true,
+    filePath,
+    message: "Update CDN",
+    originalContent,
+    newContent
+  };
+};
 
 // src/commands/add.ts
-var VERSION = "0.1.1";
+var VERSION = "0.1.11";
 var formatInstalledAgentNames = (agents) => agents.map((agent) => AGENT_NAMES[agent] || agent).join(", ");
 var add = new Command().name("add").alias("install").description("add an agent integration").argument("[agent]", `agent to add (${AGENTS.join(", ")})`).option("-y, --yes", "skip confirmation prompts", false).option(
   "-c, --cwd <cwd>",
@@ -1873,7 +1919,7 @@ var add = new Command().name("add").alias("install").description("add an agent i
         );
         logger.break();
         logger.warn(`${installedNames} is already installed.`);
-        const { action } = await prompts3({
+        const { action } = await prompts({
           type: "select",
           name: "action",
           message: "How would you like to proceed?",
@@ -1907,10 +1953,10 @@ var add = new Command().name("add").alias("install").description("add an agent i
         logger.warn(`Currently installed: ${installedNames}`);
         logger.break();
       }
-      const { agent } = await prompts3({
+      const { agent } = await prompts({
         type: "select",
         name: "agent",
-        message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+        message: `Which ${highlighter.info("coding agent")} would you like to connect?`,
         choices: availableAgents.map((availableAgent) => ({
           title: AGENT_NAMES[availableAgent],
           value: availableAgent
@@ -1925,7 +1971,7 @@ var add = new Command().name("add").alias("install").description("add an agent i
         const installedNames = formatInstalledAgentNames(
           projectInfo.installedAgents
         );
-        const { action } = await prompts3({
+        const { action } = await prompts({
           type: "select",
           name: "action",
           message: "How would you like to proceed?",
@@ -2070,7 +2116,7 @@ var add = new Command().name("add").alias("install").description("add an agent i
       }
       if (!isNonInteractive && agentsToRemove.length === 0) {
         logger.break();
-        const { proceed } = await prompts3({
+        const { proceed } = await prompts({
           type: "confirm",
           name: "proceed",
           message: "Apply these changes?",
@@ -2150,7 +2196,7 @@ var MAX_KEY_HOLD_DURATION_MS = 2e3;
 var MAX_CONTEXT_LINES = 50;
 
 // src/commands/configure.ts
-var VERSION2 = "0.1.1";
+var VERSION2 = "0.1.11";
 var isMac = process.platform === "darwin";
 var META_LABEL = isMac ? "Cmd" : "Win";
 var ALT_LABEL = isMac ? "Option" : "Alt";
@@ -2355,6 +2401,9 @@ var configure = new Command().name("configure").alias("config").description("con
   "--allow-input <boolean>",
   "allow activation inside input fields (true/false)"
 ).option("--context-lines <lines>", "max context lines to include").option(
+  "--cdn <domain>",
+  "CDN domain (e.g., unpkg.com, custom.react-grab.com)"
+).option(
   "-c, --cwd <cwd>",
   "working directory (defaults to current directory)",
   process.cwd()
@@ -2377,6 +2426,59 @@ var configure = new Command().name("configure").alias("config").description("con
       process.exit(1);
     }
     preflightSpinner.succeed();
+    if (opts.cdn) {
+      const result2 = previewCdnTransform(
+        projectInfo.projectRoot,
+        projectInfo.framework,
+        projectInfo.nextRouterType,
+        opts.cdn
+      );
+      if (!result2.success) {
+        logger.break();
+        logger.error(result2.message);
+        logger.break();
+        process.exit(1);
+      }
+      if (result2.noChanges) {
+        logger.break();
+        logger.log("No changes needed.");
+        logger.break();
+        process.exit(0);
+      }
+      logger.break();
+      printDiff(result2.filePath, result2.originalContent, result2.newContent);
+      if (!opts.yes) {
+        logger.break();
+        const { proceed } = await prompts({
+          type: "confirm",
+          name: "proceed",
+          message: "Apply these changes?",
+          initial: true
+        });
+        if (!proceed) {
+          logger.break();
+          logger.log("Changes cancelled.");
+          logger.break();
+          process.exit(0);
+        }
+      }
+      const writeSpinner = spinner(
+        `Applying changes to ${result2.filePath}.`
+      ).start();
+      const writeResult = applyTransform(result2);
+      if (!writeResult.success) {
+        writeSpinner.fail();
+        logger.break();
+        logger.error(writeResult.error || "Failed to write file.");
+        logger.break();
+        process.exit(1);
+      }
+      writeSpinner.succeed();
+      logger.break();
+      logger.log(`${highlighter.success("Success!")} CDN updated.`);
+      logger.break();
+      return;
+    }
     const hasFlags = opts.key || opts.mode || opts.holdDuration || opts.allowInput || opts.contextLines;
     logger.break();
     logger.log(`Configure ${highlighter.info("React Grab")} options:`);
@@ -2432,7 +2534,7 @@ var configure = new Command().name("configure").alias("config").description("con
         logger.log(`  Max context lines: ${highlighter.info(String(lines))}`);
       }
     } else {
-      const { selectedOption } = await prompts3({
+      const { selectedOption } = await prompts({
         type: "autocomplete",
         name: "selectedOption",
         message: "Search for an option to configure:",
@@ -2452,7 +2554,7 @@ var configure = new Command().name("configure").alias("config").description("con
         process.exit(1);
       }
       if (selectedOption === "activationKey") {
-        const { selectedCombo } = await prompts3({
+        const { selectedCombo } = await prompts({
           type: "autocomplete",
           name: "selectedCombo",
           message: "Type key combination (e.g. ctrl+shift+g):",
@@ -2469,7 +2571,7 @@ var configure = new Command().name("configure").alias("config").description("con
         );
       }
       if (selectedOption === "activationMode") {
-        const { activationMode } = await prompts3({
+        const { activationMode } = await prompts({
           type: "select",
           name: "activationMode",
           message: `Select ${highlighter.info("activation mode")}:`,
@@ -2489,7 +2591,7 @@ var configure = new Command().name("configure").alias("config").description("con
         collectedOptions.activationMode = activationMode;
       }
       if (selectedOption === "keyHoldDuration") {
-        const { keyHoldDuration } = await prompts3({
+        const { keyHoldDuration } = await prompts({
           type: "number",
           name: "keyHoldDuration",
           message: `Enter ${highlighter.info("key hold duration")} in milliseconds:`,
@@ -2504,7 +2606,7 @@ var configure = new Command().name("configure").alias("config").description("con
         collectedOptions.keyHoldDuration = keyHoldDuration;
       }
       if (selectedOption === "allowActivationInsideInput") {
-        const { allowActivationInsideInput } = await prompts3({
+        const { allowActivationInsideInput } = await prompts({
           type: "confirm",
           name: "allowActivationInsideInput",
           message: `Allow activation ${highlighter.info("inside input fields")}?`,
@@ -2517,7 +2619,7 @@ var configure = new Command().name("configure").alias("config").description("con
         collectedOptions.allowActivationInsideInput = allowActivationInsideInput;
       }
       if (selectedOption === "maxContextLines") {
-        const { maxContextLines } = await prompts3({
+        const { maxContextLines } = await prompts({
           type: "number",
           name: "maxContextLines",
           message: `Enter ${highlighter.info("max context lines")} to include:`,
@@ -2557,7 +2659,7 @@ var configure = new Command().name("configure").alias("config").description("con
       printDiff(result.filePath, result.originalContent, result.newContent);
       if (!opts.yes) {
         logger.break();
-        const { proceed } = await prompts3({
+        const { proceed } = await prompts({
           type: "confirm",
           name: "proceed",
           message: "Apply these changes?",
@@ -2650,7 +2752,7 @@ var uninstallPackagesWithFeedback = (packages, packageManager, projectRoot) => {
 };
 
 // src/commands/init.ts
-var VERSION3 = "0.1.1";
+var VERSION3 = "0.1.11";
 var REPORT_URL = "https://react-grab.com/api/report-cli";
 var DOCS_URL = "https://github.com/aidenybai/react-grab";
 var reportToCli = (type, config, error) => {
@@ -2706,7 +2808,7 @@ var formatActivationKeyDisplay2 = (activationKey) => {
 };
 var init = new Command().name("init").description("initialize React Grab in your project").option("-y, --yes", "skip confirmation prompts", false).option("-f, --force", "force overwrite existing config", false).option(
   "-a, --agent <agent>",
-  "agent integration (claude-code, cursor, opencode, codex, gemini, amp)"
+  "agent integration (claude-code, cursor, opencode, codex, gemini, amp, droid)"
 ).option(
   "-k, --key <key>",
   "activation key (e.g., Meta+K, Ctrl+Shift+G, Space)"
@@ -2777,7 +2879,7 @@ var init = new Command().name("init").description("initialize React Grab in your
         );
         logger.break();
       }
-      const { wantCustomizeOptions } = await prompts3({
+      const { wantCustomizeOptions } = await prompts({
         type: "confirm",
         name: "wantCustomizeOptions",
         message: `Would you like to customize ${highlighter.info("options")}?`,
@@ -2798,7 +2900,7 @@ var init = new Command().name("init").description("initialize React Grab in your
             `  Activation key: ${highlighter.info(formatActivationKeyDisplay2(collectedOptions.activationKey))}`
           );
         } else {
-          const { wantActivationKey } = await prompts3({
+          const { wantActivationKey } = await prompts({
             type: "confirm",
             name: "wantActivationKey",
             message: `Configure ${highlighter.info("activation key")}?`,
@@ -2809,7 +2911,7 @@ var init = new Command().name("init").description("initialize React Grab in your
             process.exit(1);
           }
           if (wantActivationKey) {
-            const { key } = await prompts3({
+            const { key } = await prompts({
               type: "text",
               name: "key",
               message: "Enter the activation key (e.g., g, k, space):",
@@ -2825,7 +2927,7 @@ var init = new Command().name("init").description("initialize React Grab in your
             );
           }
         }
-        const { activationMode } = await prompts3({
+        const { activationMode } = await prompts({
           type: "select",
           name: "activationMode",
           message: `Select ${highlighter.info("activation mode")}:`,
@@ -2844,7 +2946,7 @@ var init = new Command().name("init").description("initialize React Grab in your
         }
         collectedOptions.activationMode = activationMode;
         if (activationMode === "hold") {
-          const { keyHoldDuration } = await prompts3({
+          const { keyHoldDuration } = await prompts({
             type: "number",
             name: "keyHoldDuration",
             message: `Enter ${highlighter.info("key hold duration")} in milliseconds:`,
@@ -2858,7 +2960,7 @@ var init = new Command().name("init").description("initialize React Grab in your
           }
           collectedOptions.keyHoldDuration = keyHoldDuration;
         }
-        const { allowActivationInsideInput } = await prompts3({
+        const { allowActivationInsideInput } = await prompts({
           type: "confirm",
           name: "allowActivationInsideInput",
           message: `Allow activation ${highlighter.info("inside input fields")}?`,
@@ -2869,7 +2971,7 @@ var init = new Command().name("init").description("initialize React Grab in your
           process.exit(1);
         }
         collectedOptions.allowActivationInsideInput = allowActivationInsideInput;
-        const { maxContextLines } = await prompts3({
+        const { maxContextLines } = await prompts({
           type: "number",
           name: "maxContextLines",
           message: `Enter ${highlighter.info("max context lines")} to include:`,
@@ -2903,7 +3005,7 @@ var init = new Command().name("init").description("initialize React Grab in your
             optionsResult.newContent
           );
           logger.break();
-          const { proceed } = await prompts3({
+          const { proceed } = await prompts({
             type: "confirm",
             name: "proceed",
             message: "Apply these changes?",
@@ -2927,10 +3029,10 @@ var init = new Command().name("init").description("initialize React Grab in your
       );
       if (availableAgents.length > 0) {
         logger.break();
-        const { wantAddAgent } = await prompts3({
+        const { wantAddAgent } = await prompts({
           type: "confirm",
           name: "wantAddAgent",
-          message: `Would you like to add an ${highlighter.info("agent integration")}?`,
+          message: `Would you like to connect React Grab to a ${highlighter.info("coding agent")}? ${highlighter.dim("(optional)")}`,
           initial: false
         });
         if (wantAddAgent === void 0) {
@@ -2938,10 +3040,10 @@ var init = new Command().name("init").description("initialize React Grab in your
           process.exit(1);
         }
         if (wantAddAgent) {
-          const { agent } = await prompts3({
+          const { agent } = await prompts({
             type: "select",
             name: "agent",
-            message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+            message: `Which ${highlighter.info("coding agent")} would you like to connect?`,
             choices: [
               ...availableAgents.map((innerAgent) => ({
                 title: getAgentName(innerAgent),
@@ -2960,7 +3062,7 @@ var init = new Command().name("init").description("initialize React Grab in your
             const installedNames = formatInstalledAgentNames2(
               projectInfo.installedAgents
             );
-            const { action } = await prompts3({
+            const { action } = await prompts({
               type: "select",
               name: "action",
               message: "How would you like to proceed?",
@@ -3031,7 +3133,7 @@ var init = new Command().name("init").description("initialize React Grab in your
                 }
                 if (agentsToRemove2.length === 0) {
                   logger.break();
-                  const { proceed } = await prompts3({
+                  const { proceed } = await prompts({
                     type: "confirm",
                     name: "proceed",
                     message: "Apply these changes?",
@@ -3076,6 +3178,75 @@ var init = new Command().name("init").description("initialize React Grab in your
                 }
               }
             }
+          } else {
+            const result2 = previewTransform(
+              projectInfo.projectRoot,
+              projectInfo.framework,
+              projectInfo.nextRouterType,
+              agentIntegration2,
+              true
+            );
+            const packageJsonResult2 = previewPackageJsonTransform(
+              projectInfo.projectRoot,
+              agentIntegration2,
+              projectInfo.installedAgents,
+              projectInfo.packageManager
+            );
+            if (!result2.success) {
+              logger.break();
+              logger.error(result2.message);
+              logger.break();
+              process.exit(1);
+            }
+            const hasLayoutChanges2 = !result2.noChanges && result2.originalContent && result2.newContent;
+            const hasPackageJsonChanges2 = packageJsonResult2.success && !packageJsonResult2.noChanges && packageJsonResult2.originalContent && packageJsonResult2.newContent;
+            if (hasLayoutChanges2 || hasPackageJsonChanges2) {
+              logger.break();
+              if (hasLayoutChanges2) {
+                printDiff(
+                  result2.filePath,
+                  result2.originalContent,
+                  result2.newContent
+                );
+              }
+              if (hasPackageJsonChanges2) {
+                if (hasLayoutChanges2) {
+                  logger.break();
+                }
+                printDiff(
+                  packageJsonResult2.filePath,
+                  packageJsonResult2.originalContent,
+                  packageJsonResult2.newContent
+                );
+              }
+              logger.break();
+              const { proceed } = await prompts({
+                type: "confirm",
+                name: "proceed",
+                message: "Apply these changes?",
+                initial: true
+              });
+              if (!proceed) {
+                logger.break();
+                logger.log("Agent addition cancelled.");
+              } else {
+                installPackagesWithFeedback(
+                  getPackagesToInstall(agentIntegration2, false),
+                  projectInfo.packageManager,
+                  projectInfo.projectRoot
+                );
+                if (hasLayoutChanges2) {
+                  applyTransformWithFeedback(result2);
+                }
+                if (hasPackageJsonChanges2) {
+                  applyPackageJsonWithFeedback(packageJsonResult2);
+                }
+                logger.break();
+                logger.success(
+                  `${getAgentName(agentIntegration2)} has been added.`
+                );
+              }
+            }
           }
         }
       }
@@ -3113,7 +3284,7 @@ var init = new Command().name("init").description("initialize React Grab in your
               return 0;
             }
           );
-          const { selectedProject } = await prompts3({
+          const { selectedProject } = await prompts({
             type: "select",
             name: "selectedProject",
             message: "Select a project to install React Grab:",
@@ -3180,10 +3351,10 @@ var init = new Command().name("init").description("initialize React Grab in your
     const agentsToRemove = [];
     if (!isNonInteractive && !opts.agent) {
       logger.break();
-      const { wantAddAgent } = await prompts3({
+      const { wantAddAgent } = await prompts({
         type: "confirm",
         name: "wantAddAgent",
-        message: `Would you like to add an ${highlighter.info("agent integration")}?`,
+        message: `Would you like to connect React Grab to a ${highlighter.info("coding agent")}? ${highlighter.dim("(optional)")}`,
         initial: false
       });
       if (wantAddAgent === void 0) {
@@ -3191,10 +3362,10 @@ var init = new Command().name("init").description("initialize React Grab in your
         process.exit(1);
       }
       if (wantAddAgent) {
-        const { agent } = await prompts3({
+        const { agent } = await prompts({
           type: "select",
           name: "agent",
-          message: `Which ${highlighter.info("agent integration")} would you like to add?`,
+          message: `Which ${highlighter.info("coding agent")} would you like to connect?`,
           choices: [
             ...AGENTS.map((innerAgent) => ({
               title: getAgentName(innerAgent),
@@ -3258,7 +3429,7 @@ var init = new Command().name("init").description("initialize React Grab in your
       logger.warn("Please verify the changes before committing.");
       if (!isNonInteractive) {
         logger.break();
-        const { proceed } = await prompts3({
+        const { proceed } = await prompts({
           type: "confirm",
           name: "proceed",
           message: "Apply these changes?",
@@ -3317,7 +3488,7 @@ var init = new Command().name("init").description("initialize React Grab in your
     reportToCli("error", void 0, error);
   }
 });
-var VERSION4 = "0.1.1";
+var VERSION4 = "0.1.11";
 var remove = new Command().name("remove").description("remove an agent integration").argument(
   "[agent]",
   "agent to remove (claude-code, cursor, opencode, codex, gemini, amp, ami)"
@@ -3366,7 +3537,7 @@ var remove = new Command().name("remove").description("remove an agent integrati
       agentToRemove = agentArg;
     } else if (!isNonInteractive) {
       logger.break();
-      const { agent } = await prompts3({
+      const { agent } = await prompts({
         type: "select",
         name: "agent",
         message: `Which ${highlighter.info("agent integration")} would you like to remove?`,
@@ -3426,7 +3597,7 @@ var remove = new Command().name("remove").description("remove an agent integrati
       }
       if (!isNonInteractive) {
         logger.break();
-        const { proceed } = await prompts3({
+        const { proceed } = await prompts({
           type: "confirm",
           name: "proceed",
           message: "Apply these changes?",
@@ -3496,7 +3667,7 @@ var remove = new Command().name("remove").description("remove an agent integrati
 });
 
 // src/cli.ts
-var VERSION5 = "0.1.1";
+var VERSION5 = "0.1.11";
 var VERSION_API_URL = "https://www.react-grab.com/api/version";
 process.on("SIGINT", () => process.exit(0));
 process.on("SIGTERM", () => process.exit(0));

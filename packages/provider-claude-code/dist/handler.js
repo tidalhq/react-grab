@@ -19196,6 +19196,7 @@ var runClaudeAgent = async function* (prompt, options) {
       options: {
         pathToClaudeCodeExecutable: resolveClaudePath(),
         includePartialMessages: true,
+        permissionMode: "bypassPermissions",
         env,
         ...options,
         cwd: options?.cwd ?? process.env.REACT_GRAB_CWD ?? process.cwd(),

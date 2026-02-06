@@ -1,1 +1,1 @@
-export{j as DEFAULT_THEME,d as copyContent,c as formatElementInfo,e as generateSnippet,b as getStack,o as init,a as isInstrumentationActive}from'../chunk-WW2DLVZD.js';import'../chunk-UPN6P2CX.js';
+export{j as DEFAULT_THEME,d as copyContent,c as formatElementInfo,e as generateSnippet,b as getStack,o as init,a as isInstrumentationActive}from'../chunk-MR2TRCRF.js';

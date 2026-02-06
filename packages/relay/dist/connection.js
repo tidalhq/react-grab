@@ -7748,7 +7748,7 @@ ${context.content.join("\n\n")}`;
 var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // src/connection.ts
-var VERSION = "0.1.1";
+var VERSION = "0.1.11";
 var checkIfRelayServerIsRunning = async (port, token) => {
   try {
     const healthUrl = token ? `http://localhost:${port}/health?${RELAY_TOKEN_PARAM}=${encodeURIComponent(token)}` : `http://localhost:${port}/health`;
