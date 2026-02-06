@@ -82,6 +82,45 @@ const DeeplyNested = () => {
   );
 };
 
+interface StackLayerProps {
+  children: React.ReactNode;
+}
+
+const StackLeafButton = () => {
+  return (
+    <button
+      className="bg-emerald-600 text-white px-2 py-1 rounded text-sm"
+      data-testid="stack-filter-button"
+      type="button"
+    >
+      Stack Filter Button
+    </button>
+  );
+};
+
+const StackLayerC = (props: StackLayerProps) => {
+  return <div data-testid="stack-layer-c">{props.children}</div>;
+};
+
+const StackLayerB = (props: StackLayerProps) => {
+  return <StackLayerC>{props.children}</StackLayerC>;
+};
+
+const StackLayerA = (props: StackLayerProps) => {
+  return <StackLayerB>{props.children}</StackLayerB>;
+};
+
+const StackComposition = () => {
+  return (
+    <section className="border rounded-lg p-4" data-testid="stack-composition">
+      <h2 className="text-lg font-bold mb-4">Stack Composition</h2>
+      <StackLayerA>
+        <StackLeafButton />
+      </StackLayerA>
+    </section>
+  );
+};
+
 const FormSection = () => {
   const [inputValue, setInputValue] = useState("");
   const [textareaValue, setTextareaValue] = useState("");
@@ -855,6 +894,8 @@ export default function App() {
       <MappedCards />
 
       <DeeplyNested />
+
+      <StackComposition />
 
       <OwnerStackCases />
 
