@@ -16,26 +16,28 @@ test.describe("Element Context Fallback", () => {
     });
 
     test("should exclude filtered components from stack context", async ({ reactGrab }) => {
+      const copyStackComponentNames = async (): Promise<string[]> => {
+        const didCopy = await reactGrab.copyElementViaApi("[data-testid='stack-filter-button']");
+        expect(didCopy).toBe(true);
+        const clipboard = await reactGrab.getClipboardContent();
+        return [...clipboard.matchAll(/\bin (StackLayer\w+)/g)].map((match) => match[1]);
+      };
+
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.setOptions({ maxContextLines: 20 });
+      });
+      expect(await copyStackComponentNames()).toEqual([
+        "StackLayerC",
+        "StackLayerB",
+        "StackLayerA",
+      ]);
+
       await reactGrab.page.evaluate(() => {
         window.__REACT_GRAB__?.setOptions({
-          maxContextLines: 20,
           componentFilter: (componentName: string) => componentName !== "StackLayerB",
         });
       });
-
-      const didCopy = await reactGrab.copyElementViaApi("[data-testid='stack-filter-button']");
-      expect(didCopy).toBe(true);
-
-      const clipboard = await reactGrab.getClipboardContent();
-      expect(clipboard).toContain("Stack Filter Button");
-
-      const stackContextLines = clipboard
-        .split("\n")
-        .filter((line) => line.startsWith("  in "))
-        .map((line) => line.trim());
-      expect(stackContextLines.some((line) => line.includes("StackLayerA"))).toBe(true);
-      expect(stackContextLines.some((line) => line.includes("StackLayerC"))).toBe(true);
-      expect(stackContextLines.some((line) => line.includes("StackLayerB"))).toBe(false);
+      expect(await copyStackComponentNames()).toEqual(["StackLayerC", "StackLayerA"]);
     });
 
     test("should produce useful context for nested elements", async ({ reactGrab }) => {

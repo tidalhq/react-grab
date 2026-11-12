@@ -10,7 +10,7 @@ Uses [openstory](https://openstory.dev), a Vite-native CSF 3 alternative to Stor
 
 ```bash
 # Build the core CSS once (required before first run)
-pnpm --filter react-grab prebuild
+pnpm --filter @houkanshan/react-grab-patch prebuild
 
 # Start openstory
 pnpm --filter @react-grab/openstory dev

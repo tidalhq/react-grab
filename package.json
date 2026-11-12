@@ -8,10 +8,10 @@
   "scripts": {
     "build": "rm -rf packages/react-grab/dist && cp README.md packages/react-grab/README.md && turbo run build --filter=@react-grab/cli --filter=react-grab --filter=grab",
     "build:fixtures": "pnpm --filter @react-grab/e2e-app-vite build && pnpm --filter @react-grab/e2e-app-vite-upstream build && pnpm --filter @react-grab/e2e-app-next build:production-test && pnpm --filter @react-grab/e2e-app-tanstack-start build",
-    "dev": "turbo run dev --filter=react-grab",
+    "dev": "turbo run dev --filter=@houkanshan/react-grab-patch",
     "test": "turbo run test",
     "test:cli": "turbo run test --filter=@react-grab/cli",
-    "test:e2e:framework": "pnpm --filter react-grab exec playwright test --grep-invert @perf",
+    "test:e2e:framework": "pnpm --filter @houkanshan/react-grab-patch exec playwright test --grep-invert @perf",
     "typecheck": "turbo run typecheck",
     "typecheck:fixtures": "pnpm --filter @react-grab/e2e-app-vite typecheck && pnpm --filter @react-grab/e2e-app-vite-upstream typecheck && pnpm --filter @react-grab/e2e-app-next typecheck && pnpm --filter @react-grab/e2e-app-tanstack-start typecheck",
     "lint": "vp lint",

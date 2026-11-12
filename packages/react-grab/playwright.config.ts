@@ -135,11 +135,11 @@ const tanstackProductionProject: Project = {
 // Under COVERAGE the dist must carry source maps (and stay unminified) so V8
 // byte ranges remap cleanly back onto src/*.ts(x).
 const reactGrabProductionBuildCommand = isCoverageRun
-  ? "pnpm --filter react-grab build:coverage"
-  : "pnpm --filter react-grab build";
+  ? "pnpm --filter @houkanshan/react-grab-patch build:coverage"
+  : "pnpm --filter @houkanshan/react-grab-patch build";
 const reactGrabDevelopmentBuildCommand = isCoverageRun
-  ? "pnpm --filter react-grab build:e2e-development:coverage"
-  : "pnpm --filter react-grab build:e2e-development";
+  ? "pnpm --filter @houkanshan/react-grab-patch build:e2e-development:coverage"
+  : "pnpm --filter @houkanshan/react-grab-patch build:e2e-development";
 
 const requestedEnvironment = shouldRunViteOnly
   ? "vite-plus-development"

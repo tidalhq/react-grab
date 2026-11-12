@@ -82,10 +82,6 @@ const DeeplyNested = () => {
   );
 };
 
-interface StackLayerProps {
-  children: React.ReactNode;
-}
-
 const StackLeafButton = () => {
   return (
     <button
@@ -98,25 +94,27 @@ const StackLeafButton = () => {
   );
 };
 
-const StackLayerC = (props: StackLayerProps) => {
-  return <div data-testid="stack-layer-c">{props.children}</div>;
+const StackLayerC = () => {
+  return (
+    <div data-testid="stack-layer-c">
+      <StackLeafButton />
+    </div>
+  );
 };
 
-const StackLayerB = (props: StackLayerProps) => {
-  return <StackLayerC>{props.children}</StackLayerC>;
+const StackLayerB = () => {
+  return <StackLayerC />;
 };
 
-const StackLayerA = (props: StackLayerProps) => {
-  return <StackLayerB>{props.children}</StackLayerB>;
+const StackLayerA = () => {
+  return <StackLayerB />;
 };
 
 const StackComposition = () => {
   return (
     <section className="border rounded-lg p-4" data-testid="stack-composition">
       <h2 className="text-lg font-bold mb-4">Stack Composition</h2>
-      <StackLayerA>
-        <StackLeafButton />
-      </StackLayerA>
+      <StackLayerA />
     </section>
   );
 };

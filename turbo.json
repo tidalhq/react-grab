@@ -6,7 +6,7 @@
       "outputs": ["dist/**", ".next/**"]
     },
     "grab#build": {
-      "dependsOn": ["react-grab#build"]
+      "dependsOn": ["@houkanshan/react-grab-patch#build"]
     },
     "dev": {
       "cache": false,
