@@ -22,6 +22,8 @@ import { isSharedUiSourcePath } from "../utils/is-shared-ui-source-path.js";
 import { isNextProjectRuntime } from "../utils/is-next-project-runtime.js";
 import { formatComponentNameLines } from "../utils/format-component-name-lines.js";
 import { enrichServerFrameLocations, symbolicateServerFrames } from "./next-server-frames.js";
+import { symbolicateMetroFrames } from "./metro-frames.js";
+import { isMetroBundleUrl } from "../utils/is-metro-bundle-url.js";
 import { runQueuedSourceFetch } from "../utils/source-fetch-queue.js";
 import { resolveSolidSourceLocation } from "../utils/resolve-solid-source-location.js";
 import { getHTMLPreview, getInlineHTMLPreview } from "./html-preview.js";
@@ -185,10 +187,16 @@ const resolveCurrentFiberRevisionValue = <Value>(
 // them through our own fetch lets us mark them high priority (so they jump the
 // app's in-flight data fetches when a connection frees) and cancel them via the
 // queue's abort signal when the source-fetch timeout fires.
+//
+// Metro bundles are answered with a 404 so bippy keeps the raw bundle frames
+// (which symbolicateMetroFrames resolves server-side) instead of downloading the
+// bundle and its 100MB+ source map.
 const createSourceFetch =
   (signal: AbortSignal) =>
   (url: string): Promise<Response> =>
-    fetch(url, { signal, priority: "high" });
+    isMetroBundleUrl(url)
+      ? Promise.resolve(new Response(null, { status: 404 }))
+      : fetch(url, { signal, priority: "high" });
 
 // getOwnerStack fetches the element's bundle and source map, and on Next.js the
 // symbolication POST adds another request. Both go through the source-fetch
@@ -205,7 +213,7 @@ const fetchStackForFiber = (fiber: Fiber, abortSignal: AbortSignal): Promise<Sta
           return await symbolicateServerFrames(enrichedFrames, signal);
         }
 
-        return frames;
+        return await symbolicateMetroFrames(frames, signal);
       } catch {
         return null;
       }
@@ -237,8 +245,12 @@ const getStackForRevision = (
   };
   stackCache.set(snapshot.element, cacheEntry);
   cachedStack?.controller.abort();
+  // Raw Metro bundle frames mean /symbolicate failed; keep them as this grab's
+  // fallback but evict so the next grab retries once the dev server recovers.
   void cacheEntry.promise.then((stack) => {
-    if (stack === null) deleteCacheEntryIfCurrent(stackCache, snapshot.element, cacheEntry);
+    if (stack === null || stack.some((frame) => isMetroBundleUrl(frame.fileName))) {
+      deleteCacheEntryIfCurrent(stackCache, snapshot.element, cacheEntry);
+    }
   });
   return cacheEntry.promise;
 };
@@ -291,8 +303,10 @@ const getFiberSourceForFiber = (
   runQueuedSourceFetch(
     async (signal) => {
       try {
-        const source = await getSource(fiber, true, createSourceFetch(signal));
-        if (!source?.fileName) return null;
+        const rawSource = await getSource(fiber, true, createSourceFetch(signal));
+        if (!rawSource?.fileName) return null;
+        const [source] = await symbolicateMetroFrames([rawSource], signal);
+        if (!source?.fileName || isMetroBundleUrl(source.fileName)) return null;
         const isNextProject = isNextProjectRuntime();
 
         return {
