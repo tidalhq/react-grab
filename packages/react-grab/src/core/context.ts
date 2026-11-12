@@ -38,8 +38,20 @@ import { resolveCurrentRevisionValue } from "../utils/resolve-current-revision-v
 import type { SourceLocation } from "../types.js";
 import { getElementAdapter, getReactFiberForElement } from "./element-adapter.js";
 
+let userComponentFilter: ((componentName: string) => boolean) | undefined;
+
+export const setComponentFilter = (
+  filter: ((componentName: string) => boolean) | undefined,
+): void => {
+  userComponentFilter = filter;
+};
+
+const isFilteredOutComponentName = (name: string | null | undefined): boolean =>
+  Boolean(name && userComponentFilter && !userComponentFilter(name));
+
 const isSourceComponentName = (name: string, isNextProject: boolean): boolean => {
   if (name.length <= 1) return false;
+  if (isFilteredOutComponentName(name)) return false;
   if (isInternalComponentName(name, isNextProject)) return false;
   if (name[0] !== name[0].toUpperCase()) return false;
   return true;
@@ -457,6 +469,7 @@ const getComponentNamesFromFiber = (
         if (
           displayName &&
           isUsefulComponentName(displayName, isNextProject) &&
+          !isFilteredOutComponentName(displayName) &&
           shouldIncludeName(displayName)
         ) {
           componentNames.push(displayName);
@@ -606,6 +619,8 @@ export const formatStackContext = (
     // they never consume the soft budget, only the hard cap, so wrapper noise
     // never crowds out the meaningful app source locations.
     if (!maxLines || lines.length >= hardMaxLines) break;
+
+    if (isFilteredOutComponentName(frame.functionName)) continue;
 
     const sourceClassification = classifySourcePath(frame.fileName);
 

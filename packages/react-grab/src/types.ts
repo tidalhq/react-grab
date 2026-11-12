@@ -308,6 +308,21 @@ export interface Options {
    */
   freezeReactUpdates?: boolean;
   /**
+   * Filter which component names are considered "source" components.
+   * Return `true` to include the component, `false` to exclude it.
+   * When not provided, all user-authored components are included (default behavior).
+   * This affects which components appear in labels, context, and copied output.
+   *
+   * @example
+   * // Only show components matching a pattern
+   * componentFilter: (name) => /^(App|Dashboard|Header|Sidebar)/.test(name)
+   *
+   * @example
+   * // Exclude specific components
+   * componentFilter: (name) => !["Layout", "Container", "Wrapper"].includes(name)
+   */
+  componentFilter?: (componentName: string) => boolean;
+  /**
    * Whether to send the anonymous version check to react-grab.com on init.
    * Set to false to skip the version-check request.
    * @default true

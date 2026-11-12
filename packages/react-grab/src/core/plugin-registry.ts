@@ -38,6 +38,7 @@ interface OptionsState {
   getContent: ((elements: Element[]) => Promise<string> | string) | undefined;
   maxContextLines: number;
   freezeReactUpdates: boolean;
+  componentFilter: ((componentName: string) => boolean) | undefined;
 }
 
 const DEFAULT_OPTIONS: OptionsState = {
@@ -48,6 +49,7 @@ const DEFAULT_OPTIONS: OptionsState = {
   getContent: undefined,
   maxContextLines: DEFAULT_MAX_CONTEXT_LINES,
   freezeReactUpdates: true,
+  componentFilter: undefined,
 };
 
 interface PluginStoreState {
