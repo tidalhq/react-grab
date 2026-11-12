@@ -249,7 +249,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
   // cleanup below. Set before the renderer mounts so the toolbar anchors to the
   // container on first paint.
   setScopeContainer(initialOptions.container ?? null);
-  setComponentFilter(initialOptions.componentFilter);
 
   // The demo build is a display-only showcase, not an install: no console
   // banner, no version-check fetch (whose "outdated" nag would hit every
@@ -1224,6 +1223,10 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
         clearTimeout(componentNameDebounceTimerId);
         componentNameDebounceTimerId = null;
       }
+    });
+
+    createEffect(() => {
+      setComponentFilter(pluginRegistry.store.options.componentFilter);
     });
 
     createEffect(() => {
@@ -4256,9 +4259,6 @@ export const init = (rawOptions?: Options): ReactGrabAPI => {
       }),
       setOptions: (newOptions: SettableOptions) => {
         pluginRegistry.setOptions(newOptions);
-        if ("componentFilter" in newOptions) {
-          setComponentFilter(newOptions.componentFilter);
-        }
       },
       registerPlugin: (plugin: Plugin) => {
         pluginRegistry.register(plugin, api);

@@ -20,24 +20,68 @@ test.describe("Element Context Fallback", () => {
         const didCopy = await reactGrab.copyElementViaApi("[data-testid='stack-filter-button']");
         expect(didCopy).toBe(true);
         const clipboard = await reactGrab.getClipboardContent();
-        return [...clipboard.matchAll(/\bin (StackLayer\w+)/g)].map((match) => match[1]);
+        return [...clipboard.matchAll(/\bin (Stack\w+)/g)].map((match) => match[1]);
       };
+      const unfilteredComponentNames = [
+        "StackLeafButton",
+        "StackLayerC",
+        "StackLayerB",
+        "StackLayerA",
+        "StackComposition",
+      ];
 
       await reactGrab.page.evaluate(() => {
         window.__REACT_GRAB__?.setOptions({ maxContextLines: 20 });
       });
-      expect(await copyStackComponentNames()).toEqual([
-        "StackLayerC",
-        "StackLayerB",
-        "StackLayerA",
-      ]);
+      expect(await copyStackComponentNames()).toEqual(unfilteredComponentNames);
 
       await reactGrab.page.evaluate(() => {
         window.__REACT_GRAB__?.setOptions({
           componentFilter: (componentName: string) => componentName !== "StackLayerB",
         });
       });
-      expect(await copyStackComponentNames()).toEqual(["StackLayerC", "StackLayerA"]);
+      expect(await copyStackComponentNames()).toEqual(
+        unfilteredComponentNames.filter((componentName) => componentName !== "StackLayerB"),
+      );
+
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.setOptions({
+          componentFilter: (componentName: string) => componentName !== "StackLeafButton",
+        });
+      });
+      expect(await copyStackComponentNames()).toEqual(
+        unfilteredComponentNames.filter((componentName) => componentName !== "StackLeafButton"),
+      );
+
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.setOptions({ componentFilter: undefined });
+      });
+      expect(await copyStackComponentNames()).toEqual(unfilteredComponentNames);
+    });
+
+    test("should apply a component filter provided by a plugin", async ({ reactGrab }) => {
+      const copyStackComponentNames = async (): Promise<string[]> => {
+        const didCopy = await reactGrab.copyElementViaApi("[data-testid='stack-filter-button']");
+        expect(didCopy).toBe(true);
+        const clipboard = await reactGrab.getClipboardContent();
+        return [...clipboard.matchAll(/\bin (Stack\w+)/g)].map((match) => match[1]);
+      };
+
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.setOptions({ maxContextLines: 20 });
+        window.__REACT_GRAB__?.registerPlugin({
+          name: "stack-component-filter",
+          options: {
+            componentFilter: (componentName: string) => componentName !== "StackLeafButton",
+          },
+        });
+      });
+      expect(await copyStackComponentNames()).not.toContain("StackLeafButton");
+
+      await reactGrab.page.evaluate(() => {
+        window.__REACT_GRAB__?.unregisterPlugin("stack-component-filter");
+      });
+      expect(await copyStackComponentNames()).toContain("StackLeafButton");
     });
 
     test("should produce useful context for nested elements", async ({ reactGrab }) => {

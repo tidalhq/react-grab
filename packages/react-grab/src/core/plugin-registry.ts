@@ -128,12 +128,15 @@ const createPluginRegistry = (initialOptions: SettableOptions = {}) => {
     "getContent",
     "maxContextLines",
     "freezeReactUpdates",
+    "componentFilter",
   ];
 
   const setOptions = (optionUpdates: SettableOptions) => {
     if (isDisposed) return;
     for (const optionKey of SETTABLE_OPTION_KEYS) {
-      if (optionUpdates[optionKey] !== undefined) {
+      const isClearingComponentFilter =
+        optionKey === "componentFilter" && optionKey in optionUpdates;
+      if (optionUpdates[optionKey] !== undefined || isClearingComponentFilter) {
         setOption(optionKey, optionUpdates[optionKey]!);
       }
     }

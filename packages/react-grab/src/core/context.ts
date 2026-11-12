@@ -43,7 +43,9 @@ let userComponentFilter: ((componentName: string) => boolean) | undefined;
 export const setComponentFilter = (
   filter: ((componentName: string) => boolean) | undefined,
 ): void => {
+  if (filter === userComponentFilter) return;
   userComponentFilter = filter;
+  fiberSourceCache = new WeakMap();
 };
 
 const isFilteredOutComponentName = (name: string | null | undefined): boolean =>
@@ -137,7 +139,7 @@ interface FiberTraceResolution {
 }
 
 const stackCache = new WeakMap<Element, FiberContextCacheEntry<StackFrame[] | null>>();
-const fiberSourceCache = new WeakMap<Element, FiberContextCacheEntry<ResolvedSource | null>>();
+let fiberSourceCache = new WeakMap<Element, FiberContextCacheEntry<ResolvedSource | null>>();
 
 const createFiberContextRevisionSnapshot = (
   element: Element,
